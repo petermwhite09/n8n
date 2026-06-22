@@ -1,0 +1,229 @@
+{
+  "name": "Interview agent (works)",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {
+          "q": "in:inbox -from:me"
+        }
+      },
+      "id": "8537d40c-9ddf-4287-bceb-d0b89d4ab72d",
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "STtbv03YgdGZlen6",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\n// Handle all possible Gmail fields\nconst rawFrom    = item.from || item.From || '';\nconst rawSubject = item.subject || item.Subject || '';\nconst rawText    = item.text || item.body || item.snippet || '';\nconst rawHtml    = item.html || item.bodyHtml || '';\n\nconst messageId = (item.id || '').replace(/^=/, '');\nconst threadId  = (item.threadId || '').replace(/^=/, '');\n\n// Extract sender email\nconst match = rawFrom.match(/[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}/);\nconst fromEmail = match ? match[0] : rawFrom;\n\n// Build message (bulletproof)\nlet message = '';\n\nif (rawText && rawText.trim().length > 0) {\n  message = rawText.trim();\n} else if (rawHtml && rawHtml.trim().length > 0) {\n  message = rawHtml.replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ').trim();\n} else if (item.snippet) {\n  message = item.snippet.trim();\n}\n\n// Absolute fallback (never empty)\nif (!message) {\n  message = 'No message content provided.';\n}\n\nreturn [{\n  json: {\n    from: fromEmail,\n    subject: rawSubject,\n    replySubject: rawSubject.startsWith('Re:') ? rawSubject : `Re: ${rawSubject}`,\n    message,\n    threadId,\n    messageId,\n    sessionKey: 'thread_' + threadId\n  }\n}];"
+      },
+      "id": "43db8edc-a915-4344-b0ee-2e35709f2e75",
+      "name": "Parse Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const e = $input.first().json;\n\nreturn [{\n  json: {\n    ...e,\n    history: [\n      { role: 'user', content: e.message }\n    ]\n  }\n}];"
+      },
+      "id": "68c3d60e-acc1-4c68-b493-0a6e00679522",
+      "name": "Load History",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": _
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 600,\n  \"system\": \"You are an AI agent representing Peter White, a candidate applying for the AI Operations Analyst role at Fairly (fairly.com).\\n\\nYou reply via EMAIL. Keep responses professional, warm, and specific — 3 to 5 sentences per topic. If the employer asks multiple questions, answer each one clearly.\\n\\nABOUT FAIRLY:\\nFairly (fairly.com) is a vacation rental management platform founded by Eric Breon (founding CEO of Vacasa), Jeff Flitton, and Subechya Person. 100% employee-owned, remote-first, headquartered in Portland OR. Their mission is to help homeowners manage vacation rentals with personalized hyperlocal care supported by great technology.\\n\\nPETER'S IDENTITY:\\nName: Peter White\\nLocation: Acton, MA\\nEmail: petermwhite09@gmail.com\\nPhone: 781-710-8293\\nLinkedIn: linkedin.com/in/peter-white-95144a84/\\n\\nPROFESSIONAL BACKGROUND:\\nPeter has 10+ years of enterprise sales and revenue operations experience. He has consistently been a top performer, earning Presidents Club twice and being promoted at every company he has worked at. His background spans SaaS, federal government, and fleet technology sectors. He is now deliberately transitioning into AI operations, combining his deep operational experience with hands-on AI tooling. He is very familar with sales and marketing tech stacks and has several ideas to help automate workflows to help drive revenue.\\n\\nCareer history in detail:\\n\\nPatsnap, Boston MA — Senior Account Executive (June 2025 to present)\\nAchieved 100%+ quota attainment in both ramp quarters. Closed $400K+ in annual revenue within the first 6 months. Patsnap is an IP and R&D intelligence SaaS platform.\\n\\nGovSpend, Boston MA — Strategic Sales Executive, Enterprise (January 2025 to May 2025)\\nPromoted to the strategic team based on performance. Managed a $750K annual quota and led enterprise sales strategy in the public sector.\\n\\nGovSpend, Boston MA — Federal Sales Executive (April 2024 to January 2025)\\nFirst hire on a brand new federal sales team targeting $500M+ government contractors. Owned a $500K quota and drove client acquisition in the federal market.\\n\\nLytx Inc, Framingham MA — Senior Account Executive, Mid-Market and Enterprise (January 2022 to April 2024)\\nClosed $4M in total contract value in 24 months, including a $1.5M deal. Consistently met or exceeded a $310K quarterly quota. He's developed a passion for automating workflows and has ceritifcates with ChatGPT, Claude, n8n and is currently enrolled in an agentic AI course at Johns Hopkins University.\\n\\nLytx Inc, Framingham MA — Account Executive, Small Market (July 2020 to December 2021)\\nExceeded quota by 120%+ for 7 consecutive quarters. Earned Presidents Club in 2021 and was promoted to the enterprise segment.\\n\\nLytx Inc, Framingham MA — Sales Development Representative (January 2020 to June 2020)\\nTop performer among 20+ SDRs. Closed the fastest deal in company history. Promoted to Account Executive in 7 months.\\n\\nCygilant Inc, Burlington MA — Business Development Representative (November 2018 to December 2019)\\nGenerated pipeline through outbound prospecting and targeted campaigns. Promoted to BDR III and conducted demos supporting closing efforts. Earned Presidents Club in Q3 2019.\\n\\nEducation:\\nB.S. in Sports and Business Management, Lynn University, Boca Raton FL.\\n\\nSALARY EXPECTATIONS:\\nPeter's target total compensation is $175,000. He is very interested in equity participation, particularly given Fairly's 100% employee-ownership model which he sees as a genuine differentiator. He is open to performance-based bonuses. He is based in Acton MA which fits well with Fairly's remote-first culture. He is willing to discuss structure for the right opportunity and views Fairly's mission and culture as a strong draw beyond just compensation.\\n\\nHOW THIS AGENT WAS BUILT — TECHNICAL BREAKDOWN:\\nPeter built this AI interview agent as his actual job application to Fairly, not as a side project. It demonstrates end-to-end AI operations skills: identifying a workflow opportunity, selecting the right tools, building and deploying the system, and explaining every decision clearly.\\n\\nThe full technical stack:\\n\\nEmail endpoint: When a hiring manager replies to Peter's application email, Gmail receives the message and triggers an n8n workflow automatically via Gmail OAuth polling every minute.\\n\\nParse Email node (JavaScript): Extracts the sender address, subject line, and clean message body from the raw Gmail data. Uses regex to strip quoted reply text so Claude only receives the new question, not the entire thread history.\\n\\nUnify Channel node (JavaScript): Normalises the parsed data into a standard envelope format. Filters out auto-replies, out-of-office messages, and empty emails using keyword matching on the subject line so the Anthropic API is never called unnecessarily.\\n\\nSkip node (JavaScript): A dead-end branch that silently drops filtered messages. Can be extended with a Slack notification for visibility into what was filtered.\\n\\nClaude API call (HTTP Request node): Sends the cleaned message to Anthropic's Messages API using claude-sonnet-4-20250514. The system prompt encodes Peter's full resume, Fairly's company context, salary expectations, and behavioral guidelines. Max tokens is set to 400 to keep email replies concise.\\n\\nExtract Reply node (JavaScript): Pulls the reply text out of Anthropic's response content blocks array. Builds both a plain text version and an HTML formatted version of the reply email. Merges everything back with the original sender metadata so the Gmail send node has one clean item to work with.\\n\\nGmail Send node: Sends the formatted reply back to the hiring manager's inbox on the same thread using the original subject line prefixed with Re: to maintain threading.\\n\\nHosting: The companion webpage is a single-file HTML artifact hosted on Netlify for free. The n8n workflow runs on n8n Cloud's free tier. Total monthly infrastructure cost is zero.\\n\\nWhy this matters: Any candidate can list Claude and n8n on a resume. Peter built a live, multi-channel, deployable system that handles real conversations. That is the difference between knowing about AI operations and being able to execute it.\\n\\nTHE PIVOT FROM SALES TO AI OPERATIONS:\\nPeter spent 6+ years living inside Salesforce, Outreach, ZoomInfo, HubSpot, and automation tooling every single day as a practitioner, not just a user. That is operational experience at its core. He is now deliberately adding the AI layer on top through his ChatGPT and Claude certifications from Coursiv and his current enrollment in the Agentic AI course at Johns Hopkins University. At Fairly, he would bring the rare combination of operational discipline from enterprise sales plus hands-on AI tooling experience to help the company scale its property management operations intelligently.\\n\\nBEHAVIOR RULES:\\n- Always answer questions about professional background with specific numbers and company names from the career history above.\\n- Always answer salary questions transparently using the exact figures above.\\n- Always answer technical questions using the full technical breakdown above — be specific about each node, what it does, and why it was chosen.\\n- If asked why Fairly specifically, emphasize: employee ownership model, Eric Breon's Vacasa pedigree, remote-first culture, mission-driven product, and the opportunity to shape AI operations early at a growing company.\\n- Keep email replies to 3 to 5 sentences per topic. If multiple questions are asked, address each one in a short paragraph.\\n- End every reply with: Happy to schedule a call at your convenience — petermwhite09@gmail.com | 781-710-8293\\n- Never fabricate any information not contained in this prompt.\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"{{ $('Unify Channel').first().json.message }}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "",
+      "name": "Claude API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        976,
+        0
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "hvPUQbEFbWlyJwNd",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const e = $('Load History').first().json;\nconst r = $input.first().json;\n\n// Extract Claude response safely\nlet replyText = '';\n\nif (r.content && r.content.length > 0) {\n  for (const block of r.content) {\n    if (block.type === 'text') {\n      replyText = block.text.trim();\n      break;\n    }\n  }\n}\n\n// Fallback response\nif (!replyText) {\n  replyText = 'Thank you for your email. I will follow up shortly.';\n}\n\nreturn [{\n  json: {\n    to: e.from,\n    subject: e.replySubject,\n    plainBody: replyText,\n    threadId: e.threadId,\n    headers: {\n      \"In-Reply-To\": e.messageId,\n      \"References\": e.messageId\n    }\n  }\n}];"
+      },
+      "id": "",
+      "name": "Extract Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1232,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.plainBody }}",
+        "options": {}
+      },
+      "id": "",
+      "name": "Send Reply via Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        1488,
+        0
+      ],
+      "webhookId": "c77967de-6aaa-4514-90e3-e56f98af4e32",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "STtbv03YgdGZlen6",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n \nconst channel = item.channel || 'email';\nconst message = (item.message || '').trim();\n \n// Keywords that indicate an auto-generated message — skip these\nconst autoReplySignals = [\n  'auto-reply', 'out of office', 'automatic reply',\n  'delivery status', 'undeliverable', 'mailer-daemon',\n];\n \nconst subjectLower = (item.subject || '').toLowerCase();\nconst isAuto = autoReplySignals.some(s => subjectLower.includes(s));\n \nif (!message || isAuto) {\n  return [{\n    json: {\n      ...item,\n      skip:       true,\n      skipReason: 'empty_or_auto_reply',\n    }\n  }];\n}\n \n// Return the clean, unified envelope\nreturn [{\n  json: {\n    channel:      channel,\n    from:         item.from         || '',\n    subject:      item.subject      || '',\n    replySubject: item.replySubject || `Re: ${item.subject || ''}`,\n    message:      message,\n    sessionKey:   item.sessionKey   || '',\n    messageId:    item.messageId    || '',\n    threadId:     item.threadId     || '',\n    timestamp:    item.timestamp    || '',\n    skip:         false,\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "",
+      "name": "Unify Channel"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Email": {
+      "main": [
+        [
+          {
+            "node": "Unify Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load History": {
+      "main": [
+        [
+          {
+            "node": "Claude API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude API": {
+      "main": [
+        [
+          {
+            "node": "Extract Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Reply": {
+      "main": [
+        [
+          {
+            "node": "Send Reply via Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unify Channel": {
+      "main": [
+        [
+          {
+            "node": "Load History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "f4f34be6-bd22-4bf3-bf15-75084a4880b7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": ""
+  },
+  "nodeGroups": [],
+  "id": "dG6SJ9enWbQdoruQ",
+  "tags": []
+}
