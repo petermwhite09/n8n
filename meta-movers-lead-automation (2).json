@@ -1,0 +1,765 @@
+{
+  "name": "Meta Movers - Angi Lead → Quote Email → RingCentral Texts",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "angi-lead",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0001-4001-8001-000000000001",
+      "name": "Angi Lead Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "a1b2c3d4-0001-4001-8001-webhook0001"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f0000000-0000-0000-0000-000000000001",
+              "name": "firstName",
+              "value": "={{ $json.body.firstName }}",
+              "type": "string"
+            },
+            {
+              "id": "f0000000-0000-0000-0000-000000000002",
+              "name": "lastName",
+              "value": "={{ $json.body.lastName }}",
+              "type": "string"
+            },
+            {
+              "id": "f0000000-0000-0000-0000-000000000003",
+              "name": "email",
+              "value": "={{ $json.body.email }}",
+              "type": "string"
+            },
+            {
+              "id": "f0000000-0000-0000-0000-000000000004",
+              "name": "phone",
+              "value": "={{ $json.body.primaryPhone }}",
+              "type": "string"
+            },
+            {
+              "id": "f0000000-0000-0000-0000-000000000005",
+              "name": "phoneE164",
+              "value": "={{ '+1' + ($json.body.primaryPhone || '').toString().replace(/\\D/g,'').slice(-10) }}",
+              "type": "string"
+            },
+            {
+              "id": "f0000000-0000-0000-0000-000000000006",
+              "name": "movingFrom",
+              "value": "={{ [$json.body.address, $json.body.city, $json.body.stateProvince, $json.body.postalCode].filter(Boolean).join(', ') }}",
+              "type": "string"
+            },
+            {
+              "id": "f0000000-0000-0000-0000-000000000007",
+              "name": "movingTo",
+              "value": "={{ ($json.body.interview && $json.body.interview.find(q => (q.question || '').toLowerCase().includes('where are you moving')) || {}).answer || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "f0000000-0000-0000-0000-000000000008",
+              "name": "moveDate",
+              "value": "={{ ($json.body.interview && $json.body.interview.find(q => (q.question || '').toLowerCase().includes('when will you be moving')) || {}).answer || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "f0000000-0000-0000-0000-000000000009",
+              "name": "moveSize",
+              "value": "={{ ($json.body.interview && $json.body.interview.find(q => (q.question || '').toLowerCase().includes('how large')) || {}).answer || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "f0000000-0000-0000-0000-000000000010",
+              "name": "moveScope",
+              "value": "={{ ($json.body.interview && $json.body.interview.find(q => (q.question || '').toLowerCase().includes('same state')) || {}).answer || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "f0000000-0000-0000-0000-000000000011",
+              "name": "customerComments",
+              "value": "={{ ($json.body.comments && !$json.body.comments.toLowerCase().includes('did not provide additional comments')) ? $json.body.comments : '' }}",
+              "type": "string"
+            },
+            {
+              "id": "f0000000-0000-0000-0000-000000000012",
+              "name": "leadReceivedAt",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-0002-4002-8002-000000000002",
+      "name": "Normalize Lead Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $json.email }}",
+        "subject": "We received your request — Meta Movers",
+        "emailType": "html",
+        "message": "=<div style=\"font-family: Arial, sans-serif; color:#333; line-height:1.6;\">\n<p>Hi {{ $json.firstName }},</p>\n<p>Thank you for reaching out to <strong>Meta Movers</strong> through Angi! We've received your request and one of our team members is preparing your personalized moving quote right now — you'll receive it by email shortly.</p>\n<p>Here's what we have on file so far:</p>\n<ul>\n<li><strong>Moving from:</strong> {{ $json.movingFrom }}</li>\n<li><strong>Moving to:</strong> {{ $json.movingTo || 'to be confirmed on our call' }}</li>\n<li><strong>Preferred move date:</strong> {{ $json.moveDate || 'to be confirmed' }}</li>\n<li><strong>Home size:</strong> {{ $json.moveSize || 'to be confirmed' }}</li>\n</ul>\n{{ $json.customerComments ? '<p><em>Your note: ' + $json.customerComments + '</em></p>' : '' }}\n<p>If any of these details look off, or you'd like to add anything, just reply to this email or text us at (551) 309-3575 and we'll get it sorted before your quote goes out.</p>\n<p>Looking forward to helping you move!</p>\n<p>Warm regards,<br/>The Meta Movers Team<br/>(551) 309-3575</p>\n</div>",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0003-4003-8003-000000000003",
+      "name": "Send Quote Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        440,
+        300
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_WITH_YOUR_GMAIL_CREDENTIAL",
+          "name": "Meta Movers Gmail - ADD CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 10,
+        "unit": "minutes"
+      },
+      "id": "a1b2c3d4-0004-4004-8004-000000000004",
+      "name": "Wait 10 Minutes",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        300
+      ],
+      "webhookId": "a1b2c3d4-0004-4004-8004-wait00000010"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://platform.ringcentral.com/restapi/oauth/token",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "grant_type",
+              "value": "urn:ietf:params:oauth:grant-type:jwt-bearer"
+            },
+            {
+              "name": "assertion",
+              "value": "PASTE_YOUR_RINGCENTRAL_JWT_HERE"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-0005-4005-8005-000000000005",
+      "name": "RingCentral Get Token 1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        300
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "REPLACE_WITH_RC_BASIC_AUTH",
+          "name": "RingCentral ClientID/Secret - ADD CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://platform.ringcentral.com/restapi/v1.0/account/~/extension/~/sms",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $json.access_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"from\": { \"phoneNumber\": \"+15513093575\" }, \"to\": [ { \"phoneNumber\": $('Normalize Lead Data').item.json.phoneE164 } ], \"text\": \"Hi \" + $('Normalize Lead Data').item.json.firstName + \", it's Meta Movers - thanks for reaching out through Angi! We've received your request and are putting together your moving quote now - it'll be in your email shortly. Reply here with any questions. Reply STOP to opt out.\" } }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0006-4006-8006-000000000006",
+      "name": "Send Text 1 (Immediate)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "days"
+      },
+      "id": "a1b2c3d4-0007-4007-8007-000000000007",
+      "name": "Wait 1 Day",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        300
+      ],
+      "webhookId": "a1b2c3d4-0007-4007-8007-wait000001day"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://platform.ringcentral.com/restapi/oauth/token",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "grant_type",
+              "value": "urn:ietf:params:oauth:grant-type:jwt-bearer"
+            },
+            {
+              "name": "assertion",
+              "value": "PASTE_YOUR_RINGCENTRAL_JWT_HERE"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-0008-4008-8008-000000000008",
+      "name": "RingCentral Get Token 2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        300
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "REPLACE_WITH_RC_BASIC_AUTH",
+          "name": "RingCentral ClientID/Secret - ADD CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://platform.ringcentral.com/restapi/v1.0/account/~/extension/~/sms",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $json.access_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"from\": { \"phoneNumber\": \"+15513093575\" }, \"to\": [ { \"phoneNumber\": $('Normalize Lead Data').item.json.phoneE164 } ], \"text\": \"Hi \" + $('Normalize Lead Data').item.json.firstName + \", Meta Movers again - did your moving quote come through okay? Happy to answer any questions or adjust anything - just reply here!\" } }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0009-4009-8009-000000000009",
+      "name": "Send Text 2 (Day 1)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "days"
+      },
+      "id": "a1b2c3d4-0010-4010-8010-000000000010",
+      "name": "Wait 2 Days",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1980,
+        300
+      ],
+      "webhookId": "a1b2c3d4-0010-4010-8010-wait0002days"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://platform.ringcentral.com/restapi/oauth/token",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "grant_type",
+              "value": "urn:ietf:params:oauth:grant-type:jwt-bearer"
+            },
+            {
+              "name": "assertion",
+              "value": "PASTE_YOUR_RINGCENTRAL_JWT_HERE"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-0011-4011-8011-000000000011",
+      "name": "RingCentral Get Token 3",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2200,
+        300
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "REPLACE_WITH_RC_BASIC_AUTH",
+          "name": "RingCentral ClientID/Secret - ADD CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://platform.ringcentral.com/restapi/v1.0/account/~/extension/~/sms",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $json.access_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"from\": { \"phoneNumber\": \"+15513093575\" }, \"to\": [ { \"phoneNumber\": $('Normalize Lead Data').item.json.phoneE164 } ], \"text\": \"Hi \" + $('Normalize Lead Data').item.json.firstName + \", checking in one more time from Meta Movers. If you're still planning your move, we'd love to lock in your date. Reply here or call us anytime - thanks!\" } }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0012-4012-8012-000000000012",
+      "name": "Send Text 3 (Day 3)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://platform.ringcentral.com/restapi/v1.0/account/~/extension/~/message-store",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $json.access_token }}"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "direction",
+              "value": "Inbound"
+            },
+            {
+              "name": "messageType",
+              "value": "SMS"
+            },
+            {
+              "name": "phoneNumber",
+              "value": "={{ $('Normalize Lead Data').item.json.phoneE164 }}"
+            },
+            {
+              "name": "dateFrom",
+              "value": "={{ $('Normalize Lead Data').item.json.leadReceivedAt }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c1c2c3c4-0021-4021-8021-000000000021",
+      "name": "Check Replies Before Text 2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1600,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-0000-0000-0000-000000000022",
+              "leftValue": "={{ ($json.records || []).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c1c2c3c4-0022-4022-8022-000000000022",
+      "name": "Replied Before Text 2?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1740,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://platform.ringcentral.com/restapi/v1.0/account/~/extension/~/message-store",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $json.access_token }}"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "direction",
+              "value": "Inbound"
+            },
+            {
+              "name": "messageType",
+              "value": "SMS"
+            },
+            {
+              "name": "phoneNumber",
+              "value": "={{ $('Normalize Lead Data').item.json.phoneE164 }}"
+            },
+            {
+              "name": "dateFrom",
+              "value": "={{ $('Normalize Lead Data').item.json.leadReceivedAt }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c1c2c3c4-0031-4031-8031-000000000031",
+      "name": "Check Replies Before Text 3",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2240,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-0000-0000-0000-000000000032",
+              "leftValue": "={{ ($json.records || []).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c1c2c3c4-0032-4032-8032-000000000032",
+      "name": "Replied Before Text 3?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2380,
+        460
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "c1c2c3c4-0099-4099-8099-000000000099",
+      "name": "Lead Replied - Stop Sequence",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2100,
+        600
+      ]
+    }
+  ],
+  "connections": {
+    "Angi Lead Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Lead Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Lead Data": {
+      "main": [
+        [
+          {
+            "node": "Send Quote Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Quote Email": {
+      "main": [
+        [
+          {
+            "node": "Wait 10 Minutes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 10 Minutes": {
+      "main": [
+        [
+          {
+            "node": "RingCentral Get Token 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RingCentral Get Token 1": {
+      "main": [
+        [
+          {
+            "node": "Send Text 1 (Immediate)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Text 1 (Immediate)": {
+      "main": [
+        [
+          {
+            "node": "Wait 1 Day",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 1 Day": {
+      "main": [
+        [
+          {
+            "node": "RingCentral Get Token 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RingCentral Get Token 2": {
+      "main": [
+        [
+          {
+            "node": "Check Replies Before Text 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Text 2 (Day 1)": {
+      "main": [
+        [
+          {
+            "node": "Wait 2 Days",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 2 Days": {
+      "main": [
+        [
+          {
+            "node": "RingCentral Get Token 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RingCentral Get Token 3": {
+      "main": [
+        [
+          {
+            "node": "Check Replies Before Text 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Replies Before Text 2": {
+      "main": [
+        [
+          {
+            "node": "Replied Before Text 2?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replied Before Text 2?": {
+      "main": [
+        [
+          {
+            "node": "Lead Replied - Stop Sequence",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Text 2 (Day 1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Replies Before Text 3": {
+      "main": [
+        [
+          {
+            "node": "Replied Before Text 3?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replied Before Text 3?": {
+      "main": [
+        [
+          {
+            "node": "Lead Replied - Stop Sequence",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Text 3 (Day 3)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
