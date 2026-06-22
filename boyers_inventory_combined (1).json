@@ -1,0 +1,1665 @@
+{
+  "name": "Boyers \u2014 Inventory Automation (single workflow, hardened)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "boyers-inventory",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b056e9ee-5d73-4c4d-9cb5-9ea7ff368580",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        500
+      ],
+      "webhookId": "42adad6e-46e5-4cab-8f7d-96ce4418db29"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "22ceb5b8-90d5-471e-be4b-c8be06e855d2",
+              "name": "sheetId",
+              "value": "PASTE_GOOGLE_SHEET_ID_HERE",
+              "type": "string"
+            },
+            {
+              "id": "a4e4aa12-67ce-4ee1-b070-3a1b2a9ec93a",
+              "name": "realmId",
+              "value": "PASTE_QBO_COMPANY_REALM_ID",
+              "type": "string"
+            },
+            {
+              "id": "43c61376-0b47-4a9b-847c-ec9d89b2141b",
+              "name": "apiBase",
+              "value": "https://quickbooks.api.intuit.com",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0f50e2ac-f9a7-480d-86b7-0b19ab2b2116",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Config').first().json.sheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Settings",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "21d39d1c-1689-4f11-ba58-907a93083d05",
+      "name": "Read Settings",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        440,
+        500
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "REPLACE_GOOGLE_SA",
+          "name": "Google Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsType": "javaScript",
+        "mode": "runOnceForAllItems",
+        "jsCode": "const rows=$input.all().map(i=>i.json); const s={};\n for(const r of rows){ if(r.setting) s[r.setting]=r.value; }\n return { json:{ settings:s } };"
+      },
+      "id": "ade245d7-4b8e-4432-8375-1db042b1b12c",
+      "name": "Settings",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "0b4dcc1a-f5fd-4308-91c7-3d60e1f5d57e",
+                    "leftValue": "={{ $('Webhook').first().json.body.action }}",
+                    "rightValue": "receive",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "receive"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "ffd14d49-91c4-4455-b0c5-d90848ae85c5",
+                    "leftValue": "={{ $('Webhook').first().json.body.action }}",
+                    "rightValue": "commit",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "commit"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "ac2130ad-b902-4b6e-837a-617eadb20258",
+                    "leftValue": "={{ $('Webhook').first().json.body.action }}",
+                    "rightValue": "ship",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "ship"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "66015ae0-7cd9-47b9-bd25-7f1346363c84",
+      "name": "Route Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        880,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').first().json.apiBase }}/v3/company/{{ $('Config').first().json.realmId }}/query?minorversion=73&query={{ encodeURIComponent(\"select * from Item where Name = '\" + (($('Webhook').first().json.body.item_number)||'').toString().replace(/'/g,\"''\") + \"'\") }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "quickBooksOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "670afd44-0919-4f3c-a46e-afb0b401376b",
+      "name": "Rcv Find Item",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        120
+      ],
+      "credentials": {
+        "quickBooksOAuth2Api": {
+          "id": "REPLACE_QBO_CRED",
+          "name": "QuickBooks Online"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsType": "javaScript",
+        "mode": "runOnceForEachItem",
+        "jsCode": "const wh=$('Webhook').first().json.body, s=$('Settings').first().json.settings;\nconst found=($json.QueryResponse&&$json.QueryResponse.Item&&$json.QueryResponse.Item[0])||null;\nconst today=new Date().toISOString().slice(0,10); let body=null;\nif(!found){ body=JSON.stringify({Name:String(wh.item_number),Sku:String(wh.item_number),Type:'Inventory',TrackQtyOnHand:true,QtyOnHand:0,InvStartDate:today,IncomeAccountRef:{value:s.qbo_income_account_id},AssetAccountRef:{value:s.qbo_inventory_asset_account_id},ExpenseAccountRef:{value:s.qbo_cogs_account_id},UnitPrice:Number(wh.retail||0),PurchaseCost:Number(wh.unit_cost||0)}); }\nreturn { json:{ itemId: found?found.Id:null, itemBody:body, skipCreate:!!found } };"
+      },
+      "id": "981e2ed4-f08e-4835-a7f0-4c404123d43e",
+      "name": "Rcv Item Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "f80bce56-d37b-498d-b531-4d7d117f7ce9",
+              "leftValue": "={{ $json.skipCreate }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cc3d4fa8-57f1-4ec5-a996-624262bc2c0e",
+      "name": "Rcv Need Item?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1500,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.apiBase }}/v3/company/{{ $('Config').first().json.realmId }}/item?minorversion=73",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "quickBooksOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $('Rcv Item Body').first().json.itemBody }}"
+      },
+      "id": "9cf43a2f-04c5-4a78-9cb6-ef62d05858bc",
+      "name": "Rcv Create Item",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1700,
+        20
+      ],
+      "credentials": {
+        "quickBooksOAuth2Api": {
+          "id": "REPLACE_QBO_CRED",
+          "name": "QuickBooks Online"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').first().json.apiBase }}/v3/company/{{ $('Config').first().json.realmId }}/query?minorversion=73&query={{ encodeURIComponent(\"select * from Vendor where DisplayName = '\" + ((($('Webhook').first().json.body.vendor||''))||'').toString().replace(/'/g,\"''\") + \"'\") }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "quickBooksOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "48a134f0-f09c-435a-a492-963c7a9eb66e",
+      "name": "Rcv Find Vendor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1900,
+        120
+      ],
+      "credentials": {
+        "quickBooksOAuth2Api": {
+          "id": "REPLACE_QBO_CRED",
+          "name": "QuickBooks Online"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsType": "javaScript",
+        "mode": "runOnceForEachItem",
+        "jsCode": "const wh=$('Webhook').first().json.body;\nconst found=($json.QueryResponse&&$json.QueryResponse.Vendor&&$json.QueryResponse.Vendor[0])||null;\nconst name=wh.vendor||'';\nreturn { json:{ vendorId: found?found.Id:null, vendorBody:(found||!name)?null:JSON.stringify({DisplayName:name}), skipVendor: (!!found||!name) } };"
+      },
+      "id": "66dd3307-33a2-4b1c-8b91-0e8c68e9ab12",
+      "name": "Rcv Vendor Decide",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2100,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "96def055-e3e5-40eb-85f6-85880cb6d584",
+              "leftValue": "={{ $json.skipVendor }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b70313e1-f4a7-4fe2-bd42-defe16086245",
+      "name": "Rcv New Vendor?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2300,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.apiBase }}/v3/company/{{ $('Config').first().json.realmId }}/vendor?minorversion=73",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "quickBooksOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $('Rcv Vendor Decide').first().json.vendorBody }}"
+      },
+      "id": "8c34cd04-803d-4fba-b4df-7a98abdc885c",
+      "name": "Rcv Create Vendor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2500,
+        20
+      ],
+      "credentials": {
+        "quickBooksOAuth2Api": {
+          "id": "REPLACE_QBO_CRED",
+          "name": "QuickBooks Online"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsType": "javaScript",
+        "mode": "runOnceForEachItem",
+        "jsCode": "const wh=$('Webhook').first().json.body;\nlet itemId=$('Rcv Item Body').first().json.itemId;\ntry{ const cr=$('Rcv Create Item').first().json; if(!itemId&&cr&&cr.Item) itemId=cr.Item.Id; }catch(e){}\nlet vendorId=$('Rcv Vendor Decide').first().json.vendorId;\ntry{ const cv=$('Rcv Create Vendor').first().json; if(!vendorId&&cv&&cv.Vendor) vendorId=cv.Vendor.Id; }catch(e){}\nconst qty=Number(wh.qty||0),cost=Number(wh.unit_cost||0);\nconst body={Line:[{DetailType:'ItemBasedExpenseLineDetail',Amount:qty*cost,ItemBasedExpenseLineDetail:{ItemRef:{value:itemId},Qty:qty,UnitPrice:cost}}]};\nif(vendorId) body.VendorRef={value:vendorId};\nreturn { json:{ billBody:JSON.stringify(body) } };"
+      },
+      "id": "987d77a3-5482-4766-8656-cbe7cf792ca8",
+      "name": "Rcv Bill Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2700,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.apiBase }}/v3/company/{{ $('Config').first().json.realmId }}/bill?minorversion=73",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "quickBooksOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.billBody }}"
+      },
+      "id": "570d7e14-d100-4d93-90fb-ca7686fdffa3",
+      "name": "Rcv Create Bill",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2900,
+        120
+      ],
+      "credentials": {
+        "quickBooksOAuth2Api": {
+          "id": "REPLACE_QBO_CRED",
+          "name": "QuickBooks Online"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsType": "javaScript",
+        "mode": "runOnceForEachItem",
+        "jsCode": "const wh=$('Webhook').first().json.body; const bill=($json.Bill)||{};\nreturn { json:{ txn_id:wh.txn_id, qbo_txn_id:bill.Id||'', reference:wh.reference||('BILL-'+(bill.DocNumber||bill.Id||'')), notes:'auto: received '+new Date().toISOString().slice(0,10), action:'receive' } };"
+      },
+      "id": "22f3d5e2-a667-4833-bb50-2fd3cbaca5c3",
+      "name": "Rcv Update Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3100,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Config').first().json.sheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Transactions",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "matchingColumns": [
+            "txn_id"
+          ],
+          "value": {}
+        },
+        "options": {}
+      },
+      "id": "b434c050-a4d5-4523-8b48-c7ecbdb57c93",
+      "name": "Rcv Update Txn",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        3300,
+        120
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "REPLACE_GOOGLE_SA",
+          "name": "Google Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok:true, action: ($json.action||'done') }) }}",
+        "options": {}
+      },
+      "id": "07950931-cd8a-4f2e-85a1-29203e107ff3",
+      "name": "Rcv Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3500,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').first().json.apiBase }}/v3/company/{{ $('Config').first().json.realmId }}/query?minorversion=73&query={{ encodeURIComponent(\"select * from Customer where DisplayName = '\" + (($('Webhook').first().json.body.customer)||'').toString().replace(/'/g,\"''\") + \"'\") }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "quickBooksOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0cf93c4f-6326-4efb-84cb-e43387ce5b68",
+      "name": "Cmt Find Customer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        520
+      ],
+      "credentials": {
+        "quickBooksOAuth2Api": {
+          "id": "REPLACE_QBO_CRED",
+          "name": "QuickBooks Online"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsType": "javaScript",
+        "mode": "runOnceForEachItem",
+        "jsCode": "const wh=$('Webhook').first().json.body;\nconst found=($json.QueryResponse&&$json.QueryResponse.Customer&&$json.QueryResponse.Customer[0])||null;\nreturn { json:{ customerId: found?found.Id:null, custBody: found?null:JSON.stringify({DisplayName:wh.customer}) } };"
+      },
+      "id": "7f83e804-fc84-40d1-bfa5-0f04a82b38b8",
+      "name": "Cmt Customer Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "0cdc2ba9-4a2a-464e-a913-baa37ebc52dd",
+              "leftValue": "={{ $json.customerId }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d8629d04-4df1-43cc-9d48-6e8112e8665e",
+      "name": "Cmt New Customer?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1500,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.apiBase }}/v3/company/{{ $('Config').first().json.realmId }}/customer?minorversion=73",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "quickBooksOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $('Cmt Customer Body').first().json.custBody }}"
+      },
+      "id": "5d46d05d-fcd5-44a9-9a9d-0fe65a7982c2",
+      "name": "Cmt Create Customer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1700,
+        420
+      ],
+      "credentials": {
+        "quickBooksOAuth2Api": {
+          "id": "REPLACE_QBO_CRED",
+          "name": "QuickBooks Online"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').first().json.apiBase }}/v3/company/{{ $('Config').first().json.realmId }}/query?minorversion=73&query={{ encodeURIComponent(\"select * from Item where Name = '\" + (($('Webhook').first().json.body.item_number)||'').toString().replace(/'/g,\"''\") + \"'\") }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "quickBooksOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e8ec0e35-7d5d-4b13-a80f-c4477ead4dd7",
+      "name": "Cmt Find Item",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1900,
+        520
+      ],
+      "credentials": {
+        "quickBooksOAuth2Api": {
+          "id": "REPLACE_QBO_CRED",
+          "name": "QuickBooks Online"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsType": "javaScript",
+        "mode": "runOnceForEachItem",
+        "jsCode": "const wh=$('Webhook').first().json.body, s=$('Settings').first().json.settings;\nlet custId=$('Cmt Customer Body').first().json.customerId;\ntry{ const cr=$('Cmt Create Customer').first().json; if(!custId&&cr&&cr.Customer) custId=cr.Customer.Id; }catch(e){}\nconst item=($json.QueryResponse&&$json.QueryResponse.Item&&$json.QueryResponse.Item[0])||null;\nconst itemId=item?item.Id:null; const price=Number(wh.retail||(item?item.UnitPrice:0)||0);\nconst makeEst=String(s.create_estimate_on_commit).toUpperCase()==='TRUE' && !!custId && !!itemId;\nlet estBody=null;\nif(makeEst){ estBody=JSON.stringify({CustomerRef:{value:custId},Line:[{DetailType:'SalesItemLineDetail',Amount:Number(wh.qty||0)*price,SalesItemLineDetail:{ItemRef:{value:itemId},Qty:Number(wh.qty||0),UnitPrice:price}}]}); }\nreturn { json:{ estBody, makeEst } };"
+      },
+      "id": "1249ef0d-aab5-43dd-ba76-f6b983412008",
+      "name": "Cmt Resolve",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2100,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c7fc3c3b-1d48-4516-95d4-d2845e37fe0f",
+              "leftValue": "={{ $json.makeEst }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c4cb4fd7-525b-4a79-af96-3582d7d93bc5",
+      "name": "Cmt Make Estimate?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2300,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.apiBase }}/v3/company/{{ $('Config').first().json.realmId }}/estimate?minorversion=73",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "quickBooksOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $('Cmt Resolve').first().json.estBody }}"
+      },
+      "id": "157ae9a8-2b0b-4074-82d1-1e0fad7eec89",
+      "name": "Cmt Create Estimate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2500,
+        420
+      ],
+      "credentials": {
+        "quickBooksOAuth2Api": {
+          "id": "REPLACE_QBO_CRED",
+          "name": "QuickBooks Online"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsType": "javaScript",
+        "mode": "runOnceForEachItem",
+        "jsCode": "const wh=$('Webhook').first().json.body; let estId='';\ntry{ const e=$('Cmt Create Estimate').first().json; if(e&&e.Estimate) estId=e.Estimate.Id; }catch(err){}\nreturn { json:{ commit_id:wh.commit_id, qbo_estimate_id:estId, notes:'auto: committed '+new Date().toISOString().slice(0,10), action:'commit' } };"
+      },
+      "id": "c5d3c747-2ba5-4e18-90bf-680d3448bb96",
+      "name": "Cmt Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2700,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Config').first().json.sheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Commitments",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "matchingColumns": [
+            "commit_id"
+          ],
+          "value": {}
+        },
+        "options": {}
+      },
+      "id": "6d6bbb8e-e637-46d7-85b5-8724e09b6f02",
+      "name": "Cmt Update Commitment",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2900,
+        520
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "REPLACE_GOOGLE_SA",
+          "name": "Google Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok:true, action: ($json.action||'done') }) }}",
+        "options": {}
+      },
+      "id": "d3a6d671-3107-4ee9-9985-b4a0be632198",
+      "name": "Cmt Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3100,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').first().json.apiBase }}/v3/company/{{ $('Config').first().json.realmId }}/query?minorversion=73&query={{ encodeURIComponent(\"select * from Customer where DisplayName = '\" + (($('Webhook').first().json.body.customer)||'').toString().replace(/'/g,\"''\") + \"'\") }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "quickBooksOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fc2de8c7-cd3b-4ac3-8bba-abac073f161a",
+      "name": "Shp Find Customer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        920
+      ],
+      "credentials": {
+        "quickBooksOAuth2Api": {
+          "id": "REPLACE_QBO_CRED",
+          "name": "QuickBooks Online"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsType": "javaScript",
+        "mode": "runOnceForEachItem",
+        "jsCode": "const wh=$('Webhook').first().json.body;\nconst found=($json.QueryResponse&&$json.QueryResponse.Customer&&$json.QueryResponse.Customer[0])||null;\nreturn { json:{ customerId: found?found.Id:null, custBody: found?null:JSON.stringify({DisplayName:wh.customer}) } };"
+      },
+      "id": "064132ec-f08b-4e06-89ff-7e7b2736f435",
+      "name": "Shp Customer Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        920
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "1ec537ca-948c-48ce-a257-3fd25ffb1fdb",
+              "leftValue": "={{ $json.customerId }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f3824e6f-957c-4661-8a98-86ff3f942fc5",
+      "name": "Shp New Customer?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1500,
+        920
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.apiBase }}/v3/company/{{ $('Config').first().json.realmId }}/customer?minorversion=73",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "quickBooksOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $('Shp Customer Body').first().json.custBody }}"
+      },
+      "id": "11fed555-215f-43e5-bafa-18329d73fab8",
+      "name": "Shp Create Customer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1700,
+        820
+      ],
+      "credentials": {
+        "quickBooksOAuth2Api": {
+          "id": "REPLACE_QBO_CRED",
+          "name": "QuickBooks Online"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').first().json.apiBase }}/v3/company/{{ $('Config').first().json.realmId }}/query?minorversion=73&query={{ encodeURIComponent(\"select * from Item where Name = '\" + (($('Webhook').first().json.body.item_number)||'').toString().replace(/'/g,\"''\") + \"'\") }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "quickBooksOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "448b1346-85fa-486e-8152-d593b80ff53e",
+      "name": "Shp Find Item",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1900,
+        920
+      ],
+      "credentials": {
+        "quickBooksOAuth2Api": {
+          "id": "REPLACE_QBO_CRED",
+          "name": "QuickBooks Online"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsType": "javaScript",
+        "mode": "runOnceForEachItem",
+        "jsCode": "const wh=$('Webhook').first().json.body;\nlet custId=$('Shp Customer Body').first().json.customerId;\ntry{ const cr=$('Shp Create Customer').first().json; if(!custId&&cr&&cr.Customer) custId=cr.Customer.Id; }catch(e){}\nconst item=($json.QueryResponse&&$json.QueryResponse.Item&&$json.QueryResponse.Item[0])||null;\nconst qty=Number(wh.qty||0),price=Number(wh.retail||(item?item.UnitPrice:0)||0);\nconst body={CustomerRef:{value:custId},Line:[{DetailType:'SalesItemLineDetail',Amount:qty*price,SalesItemLineDetail:{ItemRef:{value:item?item.Id:undefined},Qty:qty,UnitPrice:price}}]};\nreturn { json:{ invoiceBody:JSON.stringify(body) } };"
+      },
+      "id": "ab67fc2d-02bc-4ce2-b9f3-81e10fbcf3ee",
+      "name": "Shp Invoice Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2100,
+        920
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.apiBase }}/v3/company/{{ $('Config').first().json.realmId }}/invoice?minorversion=73",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "quickBooksOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.invoiceBody }}"
+      },
+      "id": "f408bb3f-4494-44cf-a4c8-f95dc240c586",
+      "name": "Shp Create Invoice",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2300,
+        920
+      ],
+      "credentials": {
+        "quickBooksOAuth2Api": {
+          "id": "REPLACE_QBO_CRED",
+          "name": "QuickBooks Online"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsType": "javaScript",
+        "mode": "runOnceForEachItem",
+        "jsCode": "const wh=$('Webhook').first().json.body; const inv=($json.Invoice)||{};\nreturn { json:{ txn_id:'TX-'+Date.now(), timestamp:new Date().toISOString(), type:'ship', item_number:wh.item_number, description:wh.description||'', qty:wh.qty, unit_cost:'', reference:('INV-'+(inv.DocNumber||inv.Id||'')), qbo_txn_id:inv.Id||'', customer:wh.customer||'', job:wh.job||'', user:wh.user||'', notes:'auto: shipped/invoiced', action:'ship' } };"
+      },
+      "id": "95688862-694c-4a35-8b31-8a21302d2d3a",
+      "name": "Shp Ship Txn",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2500,
+        920
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Config').first().json.sheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Transactions",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
+        },
+        "options": {}
+      },
+      "id": "ea114e85-1267-40b4-8a04-998d2fd1b699",
+      "name": "Shp Append Txn",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2700,
+        920
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "REPLACE_GOOGLE_SA",
+          "name": "Google Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsType": "javaScript",
+        "mode": "runOnceForEachItem",
+        "jsCode": "const wh=$('Webhook').first().json.body;\nreturn { json:{ commit_id:wh.commit_id, status:'fulfilled', notes:'auto: fulfilled '+new Date().toISOString().slice(0,10), action:'ship' } };"
+      },
+      "id": "acdc0961-fbe4-4635-a627-27407fcc58d0",
+      "name": "Shp Fulfill Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2900,
+        920
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Config').first().json.sheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Commitments",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "matchingColumns": [
+            "commit_id"
+          ],
+          "value": {}
+        },
+        "options": {}
+      },
+      "id": "153e4383-1c2b-4b97-86b8-60850c7b4d1f",
+      "name": "Shp Update Commitment",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        3100,
+        920
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "REPLACE_GOOGLE_SA",
+          "name": "Google Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok:true, action: ($json.action||'done') }) }}",
+        "options": {}
+      },
+      "id": "caace008-06c8-4118-a5b5-22dd6d2ac7c2",
+      "name": "Shp Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3300,
+        920
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Read Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Settings": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Settings": {
+      "main": [
+        [
+          {
+            "node": "Route Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Action": {
+      "main": [
+        [
+          {
+            "node": "Rcv Find Item",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cmt Find Customer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Shp Find Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rcv Find Item": {
+      "main": [
+        [
+          {
+            "node": "Rcv Item Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rcv Item Body": {
+      "main": [
+        [
+          {
+            "node": "Rcv Need Item?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rcv Need Item?": {
+      "main": [
+        [
+          {
+            "node": "Rcv Create Item",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Rcv Find Vendor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rcv Create Item": {
+      "main": [
+        [
+          {
+            "node": "Rcv Find Vendor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rcv Find Vendor": {
+      "main": [
+        [
+          {
+            "node": "Rcv Vendor Decide",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rcv Vendor Decide": {
+      "main": [
+        [
+          {
+            "node": "Rcv New Vendor?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rcv New Vendor?": {
+      "main": [
+        [
+          {
+            "node": "Rcv Create Vendor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Rcv Bill Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rcv Create Vendor": {
+      "main": [
+        [
+          {
+            "node": "Rcv Bill Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rcv Bill Body": {
+      "main": [
+        [
+          {
+            "node": "Rcv Create Bill",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rcv Create Bill": {
+      "main": [
+        [
+          {
+            "node": "Rcv Update Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rcv Update Row": {
+      "main": [
+        [
+          {
+            "node": "Rcv Update Txn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rcv Update Txn": {
+      "main": [
+        [
+          {
+            "node": "Rcv Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cmt Find Customer": {
+      "main": [
+        [
+          {
+            "node": "Cmt Customer Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cmt Customer Body": {
+      "main": [
+        [
+          {
+            "node": "Cmt New Customer?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cmt New Customer?": {
+      "main": [
+        [
+          {
+            "node": "Cmt Create Customer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cmt Find Item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cmt Create Customer": {
+      "main": [
+        [
+          {
+            "node": "Cmt Find Item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cmt Find Item": {
+      "main": [
+        [
+          {
+            "node": "Cmt Resolve",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cmt Resolve": {
+      "main": [
+        [
+          {
+            "node": "Cmt Make Estimate?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cmt Make Estimate?": {
+      "main": [
+        [
+          {
+            "node": "Cmt Create Estimate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cmt Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cmt Create Estimate": {
+      "main": [
+        [
+          {
+            "node": "Cmt Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cmt Row": {
+      "main": [
+        [
+          {
+            "node": "Cmt Update Commitment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cmt Update Commitment": {
+      "main": [
+        [
+          {
+            "node": "Cmt Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shp Find Customer": {
+      "main": [
+        [
+          {
+            "node": "Shp Customer Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shp Customer Body": {
+      "main": [
+        [
+          {
+            "node": "Shp New Customer?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shp New Customer?": {
+      "main": [
+        [
+          {
+            "node": "Shp Create Customer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Shp Find Item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shp Create Customer": {
+      "main": [
+        [
+          {
+            "node": "Shp Find Item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shp Find Item": {
+      "main": [
+        [
+          {
+            "node": "Shp Invoice Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shp Invoice Body": {
+      "main": [
+        [
+          {
+            "node": "Shp Create Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shp Create Invoice": {
+      "main": [
+        [
+          {
+            "node": "Shp Ship Txn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shp Ship Txn": {
+      "main": [
+        [
+          {
+            "node": "Shp Append Txn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shp Append Txn": {
+      "main": [
+        [
+          {
+            "node": "Shp Fulfill Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shp Fulfill Row": {
+      "main": [
+        [
+          {
+            "node": "Shp Update Commitment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shp Update Commitment": {
+      "main": [
+        [
+          {
+            "node": "Shp Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": []
+}
