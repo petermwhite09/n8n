@@ -1,0 +1,422 @@
+{
+  "name": "Elite Automators Social Publisher",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        1872,
+        432
+      ],
+      "id": "4080619d-e8a3-420b-9ab9-e7ea9b604e03",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "Write one engaging Facebook and Instagram caption promoting Elite Automators’ AI voice receptionist for businesses across all industries.\n\nChoose one benefit for each post, such as answering calls 24/7, capturing more leads, scheduling appointments, reducing interruptions, improving response times, handling frequently asked questions, or delivering a consistent customer experience.\n\nOpen with a strong, natural hook. Explain the benefit in plain business language and finish with one clear call to action. Keep the main caption between 60 and 100 words. Do not focus on a specific industry unless it is used as a brief example. Avoid exaggerated promises, technical jargon, quotation marks, and repetitive phrasing.\n\nAfter the caption, add 5–8 relevant hashtags. Use a balanced mix of broad business, AI automation, customer-service, lead-generation, and branded hashtags. Change the selection between posts and avoid unrelated, spammy, or excessively broad hashtags. Always include #EliteAutomators.\n\nReturn only the finished caption and hashtags.\n"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        2096,
+        432
+      ],
+      "id": "617af5bb-9fb6-4daf-a002-a241616d85dc",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "daRywUU0W4jjqTay",
+          "name": "OpenAI social media"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://graph.facebook.com/v26.0/17841426264923762?fields=id,username",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2096,
+        672
+      ],
+      "id": "42530b74-62a5-4ce5-9fd5-ca822d7ad0f5",
+      "name": "Instagram HTTP request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "N6Wwx0HbHhXJS7Yt",
+          "name": "Meta System User"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://graph.facebook.com/v26.0/1168573843013837?fields=id,name",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2320,
+        672
+      ],
+      "id": "28daaeb2-05d0-4c54-ba5c-16d93610830c",
+      "name": "FB HTTP request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "7hpHjW0dGsAe8T2h",
+          "name": "Meta FB Page"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.cloudinary.com/v1_1/xqejurf6/auto/upload",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "upload_preset",
+              "value": "n8n_social_media"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2768,
+        432
+      ],
+      "id": "64719a47-9191-45be-b76e-d0edc4e7ea03",
+      "name": "Cloudinary HTTP request"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "data[0].b64_json",
+        "options": {
+          "fileName": "elite-automators-social.jpg",
+          "mimeType": "image/jpeg"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        2544,
+        432
+      ],
+      "id": "fbd709fe-fb94-4950-95e5-964031d9f729",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/images/generations",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "gpt-image-2"
+            },
+            {
+              "name": "prompt",
+              "value": "Create a premium, realistic vertical social media image for Elite Automators, a company providing AI voice receptionist solutions to businesses across all industries.  Depict a busy business owner or professional team serving customers while an intelligent phone system answers calls, captures leads, and schedules appointments in the background. Use a broadly relatable business setting such as a modern office, storefront, reception desk, professional-services firm, or customer-service environment. Do not focus on HVAC or any single trade.  Professional commercial photography, realistic people and technology, clean modern composition, trustworthy dark navy, black, and electric-blue color palette, polished lighting, and generous negative space for an optional headline. No logos, watermarks, readable text, distorted screens, or unrealistic hands."
+            },
+            {
+              "name": "size",
+              "value": "1088x1360"
+            },
+            {
+              "name": "quality",
+              "value": "medium"
+            },
+            {
+              "name": "output_format",
+              "value": "jpeg"
+            },
+            {
+              "name": "n",
+              "value": "={{ 1 }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2320,
+        432
+      ],
+      "id": "105b47b5-8361-4000-b57f-380895f0521c",
+      "name": "Generate Image (gpt-image-2)",
+      "credentials": {
+        "openAiApi": {
+          "id": "daRywUU0W4jjqTay",
+          "name": "OpenAI social media"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v26.0/1168573843013837/photos",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{ $('Cloudinary HTTP request').item.json.secure_url }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $('Message a model').item.json.output[0].content[0].text }}"
+            },
+            {
+              "name": "published",
+              "value": "true"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2912,
+        352
+      ],
+      "id": "5262f077-5cf4-4e92-a706-1c3dec04c9b6",
+      "name": "Publish Photo to Facebook",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "7hpHjW0dGsAe8T2h",
+          "name": "Meta FB Page"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v26.0/17841426264923762/media",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "image_url",
+              "value": "={{ $('Cloudinary HTTP request').item.json.secure_url }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $('Message a model').item.json.output[0].content[0].text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2912,
+        592
+      ],
+      "id": "24c3d383-d093-42be-8602-fc01b378f3cd",
+      "name": "Create Instagram Media Container",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "N6Wwx0HbHhXJS7Yt",
+          "name": "Meta System User"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v26.0/17841426264923762/media_publish",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "creation_id",
+              "value": "={{ $json.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        3168,
+        592
+      ],
+      "id": "065ac4c4-25e2-4e0b-80c7-ecc9d71749bb",
+      "name": "Publish Instagram Media",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "N6Wwx0HbHhXJS7Yt",
+          "name": "Meta System User"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * 1,2,3,4,5"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        1760,
+        240
+      ],
+      "id": "ca1bacc6-412e-4d5d-a6ce-644cbfd0c54f",
+      "name": "Posting Schedule - Mon-Fri 10AM"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Generate Image (gpt-image-2)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Image (gpt-image-2)": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Cloudinary HTTP request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Instagram Media Container": {
+      "main": [
+        [
+          {
+            "node": "Publish Instagram Media",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cloudinary HTTP request": {
+      "main": [
+        [
+          {
+            "node": "Publish Photo to Facebook",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Instagram Media Container",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Posting Schedule - Mon-Fri 10AM": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "8e0ce8c7-f33e-4d7f-83d8-818e978679a5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ed9b9f27d9943bf4b41576247bb53e1deb7b70ff3acc568632cba9ca76625e42"
+  },
+  "nodeGroups": [],
+  "id": "jPyAL6HK1pYD4QUy",
+  "tags": []
+}
