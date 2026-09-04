@@ -92,7 +92,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.cloudinary.com/v1_1/xqejurf6/auto/upload",
+        "url": "https://api.cloudinary.com/v1_1/Cloudinary_cloud_name/auto/upload",
         "sendBody": true,
         "contentType": "multipart-form-data",
         "bodyParameters": {
@@ -104,7 +104,7 @@
             },
             {
               "name": "upload_preset",
-              "value": "n8n_social_media"
+              "value": "cloudinary_upload_preset"
             }
           ]
         },
@@ -184,7 +184,7 @@
       "name": "Generate Image (gpt-image-2)",
       "credentials": {
         "openAiApi": {
-          "id": "daRywUU0W4jjqTay",
+          "id": "",
           "name": "OpenAI social media"
         }
       }
@@ -225,7 +225,7 @@
       "name": "Publish Photo to Facebook",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "7hpHjW0dGsAe8T2h",
+          "id": "",
           "name": "Meta FB Page"
         }
       }
@@ -262,7 +262,7 @@
       "name": "Create Instagram Media Container",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "N6Wwx0HbHhXJS7Yt",
+          "id": "",
           "name": "Meta System User"
         }
       }
@@ -295,7 +295,7 @@
       "name": "Publish Instagram Media",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "N6Wwx0HbHhXJS7Yt",
+          "id": "",
           "name": "Meta System User"
         }
       }
@@ -317,7 +317,7 @@
         1760,
         240
       ],
-      "id": "ca1bacc6-412e-4d5d-a6ce-644cbfd0c54f",
+      "id": "",
       "name": "Posting Schedule - Mon-Fri 10AM"
     }
   ],
@@ -414,9 +414,9 @@
   "versionId": "8e0ce8c7-f33e-4d7f-83d8-818e978679a5",
   "meta": {
     "templateCredsSetupCompleted": true,
-    "instanceId": "ed9b9f27d9943bf4b41576247bb53e1deb7b70ff3acc568632cba9ca76625e42"
+    "instanceId": "your_instanceID_here"
   },
   "nodeGroups": [],
-  "id": "jPyAL6HK1pYD4QUy",
+  "id": "your_FB_IDhere",
   "tags": []
 }
